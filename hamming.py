@@ -316,13 +316,19 @@ if __name__ == '__main__':
             fixer.fix_bin_file()
             
     elif cmd == 'err':
-        line = sys.argv[3]  
-        pos = sys.argv[4]
-        input_file = sys.argv[5]
-        output_file = sys.argv[6]
-        err = HammingFileError(input_file, output_file, line, pos) 
+        if len(sys.argv) == 6:
+            line = 1  
+            pos = sys.argv[3]
+            input_file = sys.argv[4]
+            output_file = sys.argv[5]
+        else:    
+            line = sys.argv[3]  
+            pos = sys.argv[4]
+            input_file = sys.argv[5]
+            output_file = sys.argv[6]
+        err = HammingFileError(input_file, output_file, line, pos)
         if _type == 'asc':
             err.error_ascii_file()
-            
         else:
             err.error_bin_file()
+
