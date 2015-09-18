@@ -1,7 +1,18 @@
 import sys
 
 class Hamming(object):
-
+    def get_binary_data(self, s):
+        binary_data = ''
+        while len(s) > 0:
+            substring = s[:8]
+            if len(substring) < 8:
+                for i in range(8 - len(substring)):
+                    substring += '0'
+            byteval = int(substring, base=2)
+            s = s[8:]
+            binary_data += chr(byteval)
+        return binary_data
+    
     def bits(self, f):
         bytes_data = (ord(b) for b in f.read())
         for b in bytes_data:
@@ -60,32 +71,40 @@ class HammingFileEncoder(HammingEncoder):
 
     def encode_ascii_file(self):
         if self.out_filename is None:
+            binary_data = ''
             with open(self.in_filename) as infile:
                 for line in infile:
                     encoded_text = self.encode(line)
-                    print encoded_text
+                    binary_data += encoded_text
+            print binary_data
         else:
             outfile = open(self.out_filename, 'w')
+            binary_data = ''
             with open(self.in_filename) as infile:
                 for line in infile:
                     encoded_text = self.encode(line)
-                    outfile.write(encoded_text)
+                    binary_data += encoded_text
+            outfile.write(binary_data)
             outfile.close()
 
     def encode_bin_file(self):
         if self.out_filename is None:
+            binary_data = ''
             with open(self.in_filename) as infile:
                 for line in infile:
                     encoded_text = self.encode(line)
-                    bin_array = ''.join([chr(int(encoded_text[index * 8: index * 8 + 8], base=2)) for index in range(len(encoded_text) / 8)])
-                    print bin_array
+                    binary_data += encoded_text
+            bin_array = self.get_binary_data(binary_data)
+            print bin_array
         else:
-            outfile = open(self.out_filename, 'wb')
+            binary_data = ''
             with open(self.in_filename) as infile:
                 for line in infile:
                     encoded_text = self.encode(line)
-                    bin_array = ''.join([chr(int(encoded_text[index * 8: index * 8 + 8], base=2)) for index in range(len(encoded_text) / 8)])
-                    outfile.write(bin_array)
+                    binary_data += encoded_text
+            bin_array = self.get_binary_data(binary_data)        
+            outfile = open(self.out_filename, 'wb')
+            outfile.write(bin_array)
             outfile.close()
 
 class HammingDecoder(Hamming):
@@ -96,13 +115,16 @@ class HammingDecoder(Hamming):
         out_string = ''
 
         while len(hamming_code) > 0:
-            if hamming_code[0] == '\n':
-                break
             byte_str = hamming_code[0:12]
+            
+            # assuming this is the correction bit that was added to the data
             # Removing the hamming encoding bits
-            byte_str = byte_str[2] + byte_str[4] + byte_str[5] + byte_str[6] + byte_str[8] + byte_str[9] + byte_str[10] + byte_str[11]  
+            if len(byte_str) == 12:
+                byte_str = byte_str[2] + byte_str[4] + byte_str[5] + byte_str[6] + byte_str[8] + byte_str[9] + byte_str[10] + byte_str[11]  
+                out_string += self.get_ascii(byte_str)
+            
             hamming_code = hamming_code[12:]
-            out_string += self.get_ascii(byte_str)
+            
         return out_string
 
 
@@ -222,7 +244,7 @@ class HammingFileFixer(HammingFixer):
         for b in self.bits(open(self.in_filename, 'rb')):
             tmp += str(b)
         fixed_hamming = self.fix(tmp)
-        bin_array = ''.join([chr(int(fixed_hamming[index * 8: index * 8 + 8], base=2)) for index in range(len(fixed_hamming) / 8)])
+        bin_array = self.get_binary_data(fixed_hamming)
         outfile.write(bin_array)
         outfile.close()
 
@@ -266,7 +288,7 @@ class HammingFileError(HammingError):
         if line_no == self.err_line_no:
             err_hamming = self.error(tmp, self.err_pos)
         outfile = open(self.out_filename, 'wb')
-        bin_array = ''.join([chr(int(err_hamming[index * 8: index * 8 + 8], base=2)) for index in range(len(err_hamming) / 8)])
+        bin_array = self.get_binary_data(err_hamming)
         outfile.write(bin_array)
         outfile.close()
 
@@ -331,4 +353,3 @@ if __name__ == '__main__':
             err.error_ascii_file()
         else:
             err.error_bin_file()
-
